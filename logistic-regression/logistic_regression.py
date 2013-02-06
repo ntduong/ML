@@ -15,6 +15,7 @@ def logistic(z):
 	
 def predict(w,x):
 	""" If p(y = +1 | x) > 0.5, then class y = +1. Otherwise y = -1."""
+	
 	return logistic(np.dot(w,x)) > 0.5 or -1
 
 """
@@ -26,31 +27,32 @@ def log_likelihood(X, Y, w, C=0.1):
 		Log likelihood function with regularization parameter C >= 0 (default: C = 0.1)
 		See README for more details.
 	"""
+	
 	return np.sum(np.log(logistic(Y*np.dot(X,w))) - C/2*np.dot(w,w))
 
 def log_likelihood_grad(X, Y, w, C=0.1):
 	""" Compute the gradient of log-likelihood function above."""
 	
-	# K is dimensionality of a sample.
-	K = len(w)
+	# d is dimensionality of a sample.
+	d = len(w)
 	# N is #training samples.
 	N = len(X)
-	s = np.zeros(K)
+	s = np.zeros(d)
 	
 	for i in range(N):
-		s += Y[i] * X[i] * logistic(-Y[i]*np.dot(X[i],w))
+		s += Y[i] * X[i] * logistic(-Y[i] * np.dot(X[i], w))
 		
 	s -= C*w
 	return s
 	
 def grad_num(X, Y, w, f, eps=0.00001):
-	""" Compute gradient numerically."""
+	""" Compute gradient numerically. Just for testing."""
 	
-	K = len(w)
-	ident = np.identity(K)
-	g = np.zeros(K)
+	d = len(w)
+	ident = np.identity(d)
+	g = np.zeros(d)
 	
-	for i in range(K):
+	for i in range(d):
 		g[i] += f(X,Y,w+eps*ident[i])
 		g[i] -= f(X,Y,w-eps*ident[i])
 		g[i] /= 2*eps
@@ -61,12 +63,12 @@ def train(X, Y, C=0.1):
 		Training phase by using BFGS algorithm to minimize -log-likelihood function.
 	"""
 	def f(w):
-		return -log_likelihood(X,Y,w,C)
+		return -log_likelihood(X, Y, w, C)
 	def fprime(w):
-		return -log_likelihood_grad(X,Y,w,C)
+		return -log_likelihood_grad(X, Y, w, C)
 	
-	K = X.shape[1]
-	initial_guess = np.zeros(K)
+	d = X.shape[1]
+	initial_guess = np.zeros(d)
 	
 	return scipy.optimize.fmin_bfgs(f, initial_guess, fprime, disp=False)
 	
@@ -76,9 +78,9 @@ def accuracy(X,Y,w):
 	"""
 	n_correct = 0
 	for i in range(len(X)):
-		if predict(w,X[i]) == Y[i]:
+		if predict(w, X[i]) == Y[i]:
 			n_correct += 1
-	return n_correct*1.0 / len(X)
+	return n_correct * 1.0 / len(X)
 
 # Splitting data in ith fold.
 def fold(arr, K, i):
@@ -146,9 +148,9 @@ def main(training_file='SPECT.train.txt', test_file='SPECT.test.txt'):
 	X_train, Y_train = read_data(training_file)
 	
 	# Training phase
-	C = train_C(X_train, Y_train)
-	print "Optimized C was", C
-	w = train(X_train, Y_train, C)
+	optC = train_C(X_train, Y_train)
+	print "Optimized C was", optC
+	w = train(X_train, Y_train, optC)
 	print 'w was', w
 	
 	# Testing phase
