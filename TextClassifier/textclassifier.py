@@ -4,7 +4,10 @@ import math
 from collections import defaultdict
 
 def getWords(doc):
-	splitter = re.compile(r'\W*')
+	"""
+	Naive feature(word) extraction for testing purpose.
+	"""
+	splitter = re.compile(r'\W+')
 	words = [s.lower() for s in splitter.split(doc) if len(s) > 2 and len(s) < 20]
 	return set(words)
 	
@@ -110,6 +113,7 @@ class NBClassifier(Classifier):
 	def classify(self, doc, default=None):
 		probs = {}
 		maxp = 0.0
+		best = None
 		for cat in self.categories():
 			probs[cat] = self.prob(doc, cat)
 			if maxp < probs[cat]:
@@ -121,6 +125,3 @@ class NBClassifier(Classifier):
 			if probs[cat] * self.getThreshold(best) > probs[best]: return default
 		
 		return best
-		
-if __name__ == '__main__':
-	pass

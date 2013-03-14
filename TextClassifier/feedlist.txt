@@ -1,0 +1,8 @@
+http://normaldeviate.wordpress.com/feed/
+http://feeds2.feedburner.com/MachineLearningtheory
+http://feeds.feedburner.com/cnet/NnTv
+http://feeds.bbci.co.uk/news/rss.xml
+http://rss.cnn.com/rss/edition.rss
+http://rss.cnn.com/rss/edition_world.rss
+http://feeds.technologyreview.com/technology_review_top_stories
+http://norvig.com/rss-feed.xml
