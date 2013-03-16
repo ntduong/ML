@@ -3,7 +3,6 @@ Simple k-means with:
 + random initial starting points
 + kmeans++ heuristic
 (c) Duong Nguyen
-Mailto: nguyen@sg.cs.titech.ac.jp
 '''
 
 import math
