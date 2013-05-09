@@ -1,11 +1,25 @@
-ML 
+ML (Machine Learning Newbie) 
 ==
 
-Basic machine learning algorithms and their applications in data ming, etc.
+Implementations of basic machine learning algorithms and their applications in data analysis, etc.
 
+Topics
+==
+
+Supervised learning algorithms: Regression, Classification, Decision Tree, etc.
+
+Clustering algorithms: k-means++, hierachical clustering, etc. 
+
+Dimensionality reduction algorithms: LPP, FDA, LFDA, PCA, etc.
+
+Applications: Text Classifier, Simple Twitter analysis, Recommendation System, Searching and Ranking, etc.
+
+Other: Adaboost, kNN, NMF, etc.
 
 Author
 ==
 
 Duong Nguyen @TokyoTech
-Email: ntduong268@gmail.com
+
+Email: nguyen@sg.cs.titech.ac.jp
+
