@@ -7,7 +7,6 @@ Email: nguyen@sg.cs.titech.ac.jp
 
 import numpy as np
 import matplotlib.pyplot as plt
-#from mpl_toolkits.mplot3d import Axes3D
 from numpy.random import shuffle
 from sklearn.metrics.pairwise import euclidean_distances
 
@@ -26,19 +25,15 @@ def kernel_kmeans(X, k=2, c=0.6, n_iter=1000, tol=1e-10):
             Set of clusters. Each cluster contains indices of samples belong to that cluster.
     """
         
-    n, d = X.shape
+    n, _ = X.shape
     
     # First, randomly initialize cluster partition
     X_ind = np.arange(0,n)
-    
-    #np.random.seed(1)
-    
     shuffle(X_ind)
     split_ind = np.arange(n/k, (n/k)*k, n/k)
-    assert len(split_ind) == k-1
-    
+    #assert len(split_ind) == k-1
     clusters = np.split(X_ind, split_ind)   
-    assert len(clusters) == k 
+    #assert len(clusters) == k 
     
     # Next compute the kernel matrix K
     sqD = euclidean_distances(X, X, squared=True)
@@ -56,19 +51,19 @@ def kernel_kmeans(X, k=2, c=0.6, n_iter=1000, tol=1e-10):
                 sum_{j=1}^k sum_{x \in C_j} || psi(x) - mu_j ||^2
         """
         
-        obj_val = float(0)
+        first_term = sum(K[i,i] for i in range(n))
+        second_term = float(0)
         for ci in range(k):
             ci_size = len(aClusters[ci])
-            temp1 = sum([K[a,a] for a in aClusters[ci]])
-            temp2 = sum([K[a,b] for a in aClusters[ci] for b in aClusters[ci]]) * 1.0 / ci_size
-            obj_val += temp1 - temp2
-            
+            second_term += sum(K[a,b] for a in aClusters[ci] for b in aClusters[ci]) * 1.0 / ci_size
+        
+        obj_val = first_term - second_term    
         return obj_val
                 
+
+    obj_val_list = [] # values of objective function at each iteration 
     
-    obj_val_list = []
-    
-    for i in range(n_iter):
+    for _ in range(n_iter):
         obj_val_list.append(obj_function(clusters))
         
         tmp_clusters = [[] for _ in range(k)]
@@ -79,8 +74,8 @@ def kernel_kmeans(X, k=2, c=0.6, n_iter=1000, tol=1e-10):
             for ci in range(k):
                 c_size = len(clusters[ci])
                 
-                tmp1 = sum([ K[xi, cxi] for cxi in clusters[ci] ])
-                tmp2 = sum([ K[cxi, cxj] for cxi in clusters[ci] for cxj in clusters[ci] ])
+                tmp1 = sum(K[xi, cxi] for cxi in clusters[ci])
+                tmp2 = sum(K[cxi, cxj] for cxi in clusters[ci] for cxj in clusters[ci])
                 if best_min == None:
                     best_min = -2.0 * tmp1 / c_size + 1.0 * tmp2 / (c_size**2)
                     min_ci = ci
@@ -139,8 +134,7 @@ def kernel_kmeans(X, k=2, c=0.6, n_iter=1000, tol=1e-10):
         
         # Update new clusters
         for ci in range(k):
-            clusters[ci] = np.array(tmp_clusters[ci])
-        
+            clusters[ci] = np.array(tmp_clusters[ci], dtype='int')
         
     assert len(clusters) == k, "We need k clusters!"
     return clusters, obj_val_list
@@ -181,5 +175,5 @@ def with_dataset(c, dat_fname, fig_name, obj_fname):
     #plt.show()
     
 if __name__ == '__main__':
-    with_dataset(0.6, '2d-6/2d-6.txt', '2d-6/2d-6_c_06.png', '2d-6/2d-6_obj_c_06.png')
-    #with_dataset(0.3, '2d-7/2d-7.txt', '2d-7/2d-7_c_03.png', '2d-7/2d-7_obj_c_03.png')
+    #with_dataset(0.6, '2d-6/2d-6.txt', '2d-6/2d-6_c_06.png', '2d-6/2d-6_obj_c_06.png')
+    with_dataset(0.1, '2d-7/2d-7.txt', '2d-7/2d-7_c_01.png', '2d-7/2d-7_obj_c_01.png')
