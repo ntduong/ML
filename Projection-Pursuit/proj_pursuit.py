@@ -1,0 +1,123 @@
+'''
+Created on 2013/06/11
+Author: Duong Nguyen
+Email: nguyen@sg.cs.titech.ac.jp
+Simple implementation of projection pursuit and demo.
+'''
+
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.linalg import eigh
+
+def loadData(datfile, pre_process=True, plot=True):
+    """ Load samples data from file.
+        
+        Returns: X as n x d matrix (ndaray), where
+                    n: # of samples
+                    d: dimensionality
+    """
+    X = []
+    with open(datfile, 'rt') as fin:
+        for line in fin:
+            row = map(float, line.strip().split(','))
+            X.append(row)
+    
+    X = np.array(X, dtype='float64')
+    
+    if pre_process:
+        X = pre_processing(X)
+        
+    if plot:
+        fig = plt.figure()
+        fig.clf()
+        plt.plot(X[:,0], X[:,1], 'rx')
+        plt.axis('off')
+        figname = datfile.split('.')[0] + '.png'
+        if pre_process: figname = 'pre'+figname
+        plt.savefig(figname)
+        plt.show()
+        
+    return X
+     
+def pre_processing(X):
+    """ Centering and Sphering data."""
+    eps = 1e-18
+    n = X.shape[0]
+    cX = X - np.mean(X, axis=0) # centering
+    cov_mat = 1.0/n * np.dot(cX.T, cX)
+    eigvals, eigvecs = eigh(cov_mat)
+    D = np.diag(1./np.sqrt(eigvals+eps)) 
+    W = np.dot(np.dot(eigvecs, D), eigvecs.T) # whitening matrix
+    wcX = np.dot(cX, W)
+    return wcX
+
+def check(X, datname, DEBUG=False):
+    """ Check if data is already centering and sphering."""
+    n = X.shape[0]
+    if DEBUG:
+        print 1./n * np.dot(X.T, X)
+    fig = plt.figure()
+    fig.clf()
+    plt.plot(X[:,0], X[:,1], 'rx')
+    plt.axis('off')
+    figname = datname + '.png'
+    plt.savefig(figname)
+    plt.show()
+    
+def proj_pursuit(X, n_iter=1000, learning_rate=0.1, tol=1e-8):
+    """ Gradient ascent algorithm for projection pursuit."""
+    
+    n, d = X.shape
+    init_b = np.asarray([1.0/np.sqrt(d) for _ in xrange(d)], dtype='float64') 
+    
+    def obj_func(b):
+        tmp = (np.dot(X, b))**4
+        return (tmp.mean(axis=0) - 3) ** 2
+    
+    def gradient(b):
+        t1 = (np.dot(X, b))**4
+        t1 = t1.mean(axis=0) - 3
+        
+        t2 = (np.dot(X, b))**3
+        t3 = np.mean(np.array([t2[i] * X[i] for i in xrange(n)]), axis=0)
+        return 2.0 * t1 * 4.0 * t3
+    
+    obj_val = obj_func(init_b)
+    proj_b = init_b
+    
+    for _ in xrange(n_iter):
+        proj_b += learning_rate * gradient(proj_b) # update
+        proj_b /= np.sqrt(np.sum(proj_b**2)) # normalization
+        
+        new_obj_val = obj_func(proj_b) # compute new objective value
+        
+        if np.abs(new_obj_val - obj_val) <= tol: # check convergence
+            break
+        else:
+            obj_val = new_obj_val
+        
+    return proj_b
+
+    
+def main(datfile):
+    X = loadData(datfile, pre_process=True, plot=False)
+    proj_b = proj_pursuit(X, n_iter=100, learning_rate=0.01, tol=1e-8)
+    
+    fig = plt.figure()
+    fig.clf()
+    
+    plt.plot(X[:,0], X[:,1], 'rx', mfc='white', mec='r', ms=7, mew=1) # plot samples
+    
+    # plot projection pursuit direction
+    X_mean = X.mean(axis=0)    
+    plt.plot( [proj_b[0] * i + X_mean[0] for i in np.linspace(-8,8)], 
+              [proj_b[1] * i + X_mean[1] for i in np.linspace(-8,8)], 'b', lw=4)
+    
+    figname = 'proj_pursuit' + datfile.split('.')[0] + '.png'
+    plt.axis('off')
+    plt.savefig(figname)
+    plt.show()
+    
+if __name__ == '__main__':
+    main('2d-4.txt')
+    
