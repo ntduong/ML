@@ -4,38 +4,21 @@ Simple implementation of (linear) k-means algorithm with:
 2. Initial centroids selected by kmeans++ heuristic.
 """
 
-import math
 import random
 from collections import defaultdict
 import numpy as np
-import matplotlib.pyplot as plt
+from utils import WeightedRandomSelector
 
-def edist(p, q):
-	""" Compute the Euclidean distance between two points p, q. """
-	if len(p) != len(q):
-		raise ValueError, "lengths must match!"
+def edist(x, y):
+	""" Compute the Euclidean distance between two points p, q."""
 	
-	sqSum = sum(map(lambda x,y: (x-y)**2, p, q))
-	return math.sqrt(sqSum)
-	
-def pearson(x, y):
-	""" Compute the Pearson correlation between two points x, y. 
-		This can be used as a "distance" between x, y.
-	"""
 	if len(x) != len(y):
-		raise ValueError, "lengths must match!"
-	n = len(x)
-	sumx = sum(x)
-	sumy = sum(y)
-	sumxy = sum(map(lambda a,b: a*b, x, y))
-	sqSumx = sum(map(lambda a: a**2, x))
-	sqSumy = sum(map(lambda a: a**2, y))
+		raise ValueError, "Lengths must match!"
 	
-	nu = sumxy - float(sumx) * sumy/n
-	de = math.sqrt((float(sqSumx) - sumx**2/n) * (float(sqSumy) - sumy**2/n))
-	if de == 0: return 0 # no correlation
-	else: return nu/de
-		
+	sqSum = sum(map(lambda a,b: (a-b)**2, x, y))
+	#sqSum = np.sum((x-y)**2)
+	return np.sqrt(sqSum)
+	
 def random_init_from_data(X, k, dist=None):
 	""" Choose k initial *different* centroids randomly from input data X. 
 		
@@ -90,7 +73,6 @@ def init_plusplus(X, k, dist=edist):
 	X = X.tolist()
 	set_c = set()
 	
-	from utils import WeightedRandomSelector
 	# Choose the first centroid randomly from data X
 	cid = random.randrange(len(X))
 	set_c.add(tuple(X[cid]))
@@ -108,128 +90,56 @@ def init_plusplus(X, k, dist=edist):
 	cs = map(list, set_c)
 	if len(cs) < k:
 		cs.extend([cs[0]]*(k-len(cs)))	
-		
 	return cs
 	
-def kmeans(X, init=init_plusplus, dist=edist, k=5, n_iter=1000, tol=1e-10):
-	"""	k-Means algorithm of clustering data X into k clusters.
+def kmeans(X, init=init_plusplus, distance=edist, k=5, n_iter=1000, tol=1e-10):
+	"""	k-means algorithm of clustering data X into k clusters.
+		
 		Params:
-			X: n x d matrix of n samples. np.ndarray type
-			dist: Distance metric function
-			init: specify how to select k initial centroids.
-			n_iter: the maximum number of iterations of the algorithm.
-			tol: tolerance value for convergence
+			X: 	n x d matrix of n samples. [np.ndarray type]
+				Each sample is d-dimensional.
+			distance: Distance metric function (Euclidean, Pearson, etc.)
+			init: Specify how to select k initial centroids (random, k-means++, etc.)
+			n_iter: The maximum number of iterations.
+			tol: Tolerance value for convergence
+		
 		Returns:
-			clusters: {cluster_id: [list of samples in the cluster]}
+			clusters: {cluster_id: [list of indices of samples in cluster]} for cluster_id = 0,1,...,k-1
 			cs: list of centroids.
 	"""
-	n, d = X.shape
+	
+	n = X.shape[0] # number of samples
 	
 	# Get k initial centroids
-	cs = init(X, k, dist=dist)
-	clusters = None
+	cs = init(X, k, dist=distance)
 	
-	for t in range(n_iter):
-		print 'Iteration %d:' %t
-		# First, assign each data point to a cluster specified by its nearest centroids.
-		tmpClusters = defaultdict(list)
+	for _ in range(n_iter):	
+		# First, assign each data point to a cluster specified by its nearest centroid.
+		clusters = defaultdict(list)
+		for xid in range(n):
+			_, cid = min([ (distance(X[xid], cs[i]), i) for i in range(k) ])
+			clusters[cid].append(xid)
 		
-		for p in X:
-			_, cid = min([(dist(p, cs[id]), id) for id in range(len(cs))])
-			tmpClusters[cid].append(p)
+		oldcs = cs[:] # save old centroids
 		
 		# Compute new centroid for each cluster. 
 		for i in range(k):
-			# Get the list of X that belong to i-th cluster
-			cPoints = tmpClusters[i]
-			# Get the size of i-th cluster
-			cSize = len(cPoints)
-			
-			oldcs = cs[:]
-			# New centroid for i-th cluster: simply computing the average of the cluster's X 
+			cPoints = clusters[i] # list of indices of samples that belong to the i-th cluster 
+			cSize = len(cPoints) # size of the i-th cluster
 			if cSize > 0:
-				total = map(sum, zip(*cPoints))
-				avg = map(lambda x: float(x)/cSize, total)
-				cs[i] = avg # new centroid of i-th cluster
+				cX = X[cPoints]
+				cs[i] = np.mean(cX, axis=0) # new centroid of the i-th cluster
 		
-		# Check if convergence
+		# Check convergence
 		diff = 0.0
 		for i in range(k):
-			diff += dist(cs[i], oldcs[i])
-		
+			diff += distance(cs[i], oldcs[i])
 		if diff <= tol: 
 			break
 			
-	clusters = tmpClusters
-	for k in clusters:
-		clusters[k] = np.asarray(clusters[k], dtype='float64')
-	
 	return clusters, cs
 	
-def gen_2D_data(n=1000):
-	""" Generate 9*n data points from 9 Gaussian distributions for testing.
-		Returns:
-			X: 9n x 2 matrix of 9n samples. Each sample is 2-dimensional
-			   Type: ndarray.
-	"""
-	X = []
-	means = [(0,0), (0,3), (0,6), (3,0), (3,3,), (3,6), (-3,0), (-3,3), (-3,6)]
-	cov = 0.1*np.eye(2)
-	for i in range(len(means)):
-		tmp = np.random.multivariate_normal(means[i], cov, n)	
-		for p in tmp:
-			X.append([p[0],p[1]])
-	# randomly shuffle data points
-	random.shuffle(X)
-	return np.asarray(X, dtype='float64')
-
-def plotClusters(clusters, centroids, figname):
-	""" Plot clusters. 
-		Assume that #clusters <= 6 for simplicity in color scheme.
-		
-		Params:
-			clusters: {cluster_id: [list of samples in the cluster]}
-			centroidss: list of centroids.
-	"""
-	n_cluster = len(centroids)
-	
-	#marker_list = ['o', '*', '+', 'x', 'v', 's', 'd', 'p', '^']
-	marker_symbol = 'o'
-	color_list = ['r', 'g', 'b', 'y', 'm', 'k', 'c', 'burlywood', 'chartreuse']
-	
-	fig = plt.figure()
-	fig.clf()
-	
-	# Plot each cluster
-	for i in range(n_cluster):
-		plt.scatter(clusters[i][:,0], clusters[i][:,1], marker=marker_symbol, edgecolor=color_list[i], facecolor='white')
-	
-	# Plot the centroid of each cluster
-	for i in range(n_cluster): 
-		plt.scatter(centroids[i][0], centroids[i][1], marker=marker_symbol, facecolor=color_list[i], s=10)
-		
-	plt.axis('off')	
-	plt.savefig(figname)
-	plt.show()
-	
-def with_lecture_data():
-	X = []
-	with open('2d-7/2d-7.txt', 'rt') as fin:
-		for line in fin:
-			row = map(float, line.strip().split(','))
-			X.append(row)
-	X = np.asarray(X, dtype='float64')
-	
-	clusters, cs = kmeans(X, init=init_plusplus, k=2)
-	plotClusters(clusters, cs, '2d-7/2d-7_random_init_from_data.png')
-	
-def with_9_gaussian_toy_data():
-	X = gen_2D_data(n=500)
-	clusters, centroids = kmeans(X, init=init_plusplus, k=9)
-	plotClusters(clusters, centroids, '9_gaussian_plusplus2.png') 
-	
 if __name__ == '__main__':
-	with_9_gaussian_toy_data()
-	
+	pass
 	
 	
