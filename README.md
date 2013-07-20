@@ -21,5 +21,5 @@ Author
 
 Duong Nguyen @TokyoTech
 
-Email: nguyen@sg.cs.titech.ac.jp
+Email: nguyen@sg.cs.titech.ac.jp; ntduong268(at)gmail.com
 
